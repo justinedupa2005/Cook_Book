@@ -11,6 +11,8 @@ const multer = require("multer");
 const cookieParser = require("cookie-parser");
 require("dotenv").config();
 
+console.log("CORS ORIGIN:", process.env.FRONTEND_URL);
+
 const corsOption = {
   origin: process.env.FRONTEND_URL,
   credentials: true,
@@ -52,8 +54,8 @@ const generateRefreshToken = (user) =>
 const setRefreshCookie = (res, token) =>
   res.cookie("refreshToken", token, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "strict",
+    secure: false,
+    sameSite: "lax",
     maxAge: 7 * 24 * 60 * 60 * 1000,
   });
 
@@ -69,6 +71,23 @@ const verifyToken = (req, res, next) => {
     res.status(401).json({ message: "Invalid or expired token" });
   }
 };
+
+//REFRESH TOKEN
+app.post("/api/refresh", (req, res) => {
+  const token = req.cookies.refreshToken;
+  if (!token) return res.status(401).json({ message: "No refresh token" });
+
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_REFRESH_SECRET);
+    const newAccessToken = generateAccessToken({
+      _id: decoded.id,
+      username: decoded.username,
+    });
+    res.json({ accessToken: newAccessToken });
+  } catch {
+    res.status(401).json({ message: "Invalid or expired refresh token" });
+  }
+});
 
 //SIGNUP POST
 app.post("/api/signup", async (req, res) => {
@@ -122,20 +141,6 @@ app.post("/api/login", async (req, res) => {
   }
 });
 
-//REFRESH TOKEN
-app.post("/api/refresh", (req, res) => {
-  const token = req.cookies.refreshToken;
-  if (!token) return res.status(401).json({ message: "No refresh token" });
-
-  try {
-    const decoded = jwt.verify(token, process.env.JWT_REFRESH_SECRET);
-    const newAccessToken = generateAccessToken(decoded);
-    res.json({ accessToken: newAccessToken });
-  } catch {
-    res.status(401).json({ message: "Invalid or expired refresh token" });
-  }
-});
-
 //LOGGING OUT TOKEN
 app.post("/api/logout", (req, res) => {
   res.clearCookie("refreshToken");
@@ -186,11 +191,34 @@ app.get("/api/recipes", async (req, res) => {
 
 //REQUESTING USER OWN RECIPES
 app.get("/api/my-recipes", verifyToken, async (req, res) => {
-  const recipes = await RecipeModel.find({ createdBy: req.user.id }).populate(
-    "createdBy",
-    "username",
-  );
-  res.json(recipes);
+  try {
+    const { region, category, difficulty, search, page = 1 } = req.query;
+    const limit = 9;
+    const skip = (page - 1) * limit;
+
+    let filter = { createdBy: req.user.id };
+
+    if (region) filter.region = region;
+    if (category) filter.category = category;
+    if (difficulty) filter.difficulty = difficulty;
+    if (search) filter.dishName = { $regex: search, $options: "i" };
+
+    const recipes = await RecipeModel.find(filter)
+      .populate("createdBy", "username")
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
+
+    const total = await RecipeModel.countDocuments(filter);
+
+    res.json({
+      recipes,
+      totalPages: Math.ceil(total / limit),
+      currentPage: Number(page),
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 //REQUIESTING SPECIFIC RECIPE
@@ -246,11 +274,11 @@ app.post(
         image: imageUrl,
         imagePublicId: publicId,
         category,
-        prepTime,
-        cookTime,
+        prepTime: prepTime ? Number(prepTime) : 0,
+        cookTime: cookTime ? Number(cookTime) : 0,
         description,
-        ingredients,
-        instructions,
+        ingredients: JSON.parse(ingredients || "[]"),
+        instructions: JSON.parse(instructions || "[]"),
         difficulty,
         createdBy: req.user.id,
       });
@@ -260,6 +288,10 @@ app.post(
         data: newRecipe,
       });
     } catch (err) {
+      // If there's an error and the file still exists locally, clean it up
+      if (req.file && fs.existsSync(req.file.path)) {
+        fs.unlinkSync(req.file.path);
+      }
       console.error(err);
       res.status(500).json({ error: err.message });
     }

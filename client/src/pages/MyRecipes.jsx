@@ -88,11 +88,19 @@ function MyRecipes() {
       if (region) params.append("region", region);
       if (category) params.append("category", category);
       if (difficulty) params.append("difficulty", difficulty);
-      if (debouncedSearch) params.append("debouncedSearch", debouncedSearch);
+      if (debouncedSearch) params.append("search", debouncedSearch);
       params.append("page", page);
 
+      const token = localStorage.getItem("token");
+
       const res = await axios.get(
-        `hhtp://localhost:8080/api/my-recipes?${params.toString()}`,
+        `http://localhost:8080/api/my-recipes?${params.toString()}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+          withCredentials: true,
+        },
       );
 
       setRecipes(res.data.recipes);

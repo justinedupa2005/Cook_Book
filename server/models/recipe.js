@@ -1,5 +1,23 @@
 const mongoose = require("mongoose");
 
+const IngredientSchema = new mongoose.Schema({
+  quantity: {
+    type: String,
+    default: "",
+    min: 0,
+  },
+  unit: {
+    type: String,
+    default: "",
+    trim: true,
+  },
+  name: {
+    type: String,
+    required: true,
+    trim: true,
+  },
+});
+
 const RecipeSchema = new mongoose.Schema({
   dishName: { type: String, required: true },
   region: {
@@ -11,7 +29,7 @@ const RecipeSchema = new mongoose.Schema({
   },
   image: {
     type: String,
-    required: true,
+    default: "",
   },
   imagePublicId: {
     type: String,
@@ -45,11 +63,16 @@ const RecipeSchema = new mongoose.Schema({
     required: true,
   },
   ingredients: {
-    type: [String],
+    type: [IngredientSchema],
     validate: [(v) => v.length > 0, "Must have at least one ingredient"],
   },
   instructions: {
-    type: [String],
+    type: [
+      {
+        step: Number,
+        text: String,
+      },
+    ],
     required: true,
   },
   difficulty: {

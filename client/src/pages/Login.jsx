@@ -22,7 +22,7 @@ function Login() {
       });
 
       if (result.status === 200) {
-        sessionStorage.setItem("accessToken", result.data.accessToken);
+        localStorage.setItem("accessToken", result.data.accessToken);
         setAlertMessage("Login Successfully!");
         setShowAlert(true);
         setTimeout(() => {

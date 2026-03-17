@@ -1,14 +1,33 @@
 import axios from "axios";
+import { jwtDecode } from "jwt-decode";
 
 const api = axios.create({
   baseURL: "http://localhost:8080",
-  withCredentials: true, // sends the cookie automatically
+  withCredentials: true,
 });
 
-// Attach access token to every request
-api.interceptors.request.use((config) => {
-  const token = sessionStorage.getItem("accessToken");
-  if (token) config.headers.Authorization = `Bearer ${token}`;
+// Attach access token — refresh proactively if it's expired
+api.interceptors.request.use(async (config) => {
+  let token = localStorage.getItem("accessToken");
+
+  if (token) {
+    const { exp } = jwtDecode(token);
+    const isExpired = Date.now() >= exp * 1000;
+
+    if (isExpired) {
+      // Refresh before sending the request
+      const { data } = await axios.post(
+        "http://localhost:8080/api/refresh",
+        {},
+        { withCredentials: true },
+      );
+      token = data.accessToken;
+      localStorage.setItem("accessToken", token);
+    }
+
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+
   return config;
 });
 
@@ -25,11 +44,11 @@ api.interceptors.response.use(
           {},
           { withCredentials: true },
         );
-        sessionStorage.setItem("accessToken", data.accessToken);
+        localStorage.setItem("accessToken", data.accessToken);
         original.headers.Authorization = `Bearer ${data.accessToken}`;
         return api(original); // retry the failed request
       } catch {
-        sessionStorage.removeItem("accessToken");
+        localStorage.removeItem("accessToken");
         window.location.href = "/login";
       }
     }
