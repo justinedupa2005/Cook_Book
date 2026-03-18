@@ -1,8 +1,9 @@
 import { useState, useEffect, useCallback } from "react";
-import axios from "axios";
+import api from "../api/axiosInstance";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import RecipeCard from "../components/RecipeCard";
+import RecipeModal from "../components/RecipeModal";
 
 const REGIONS = ["All", "Luzon", "Visayas", "Mindanao"];
 const CATEGORIES = [
@@ -68,6 +69,7 @@ function MyRecipes() {
   const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(false);
   const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [selectedRecipeId, setSelectedRecipeId] = useState(null);
 
   // Debounce search input
   useEffect(() => {
@@ -91,9 +93,9 @@ function MyRecipes() {
       if (debouncedSearch) params.append("search", debouncedSearch);
       params.append("page", page);
 
-      const token = localStorage.getItem("token");
+      const token = localStorage.getItem("accessToken");
 
-      const res = await axios.get(
+      const res = await api.get(
         `http://localhost:8080/api/my-recipes?${params.toString()}`,
         {
           headers: {
@@ -128,6 +130,13 @@ function MyRecipes() {
 
   return (
     <div className="flex flex-col min-h-screen bg-gray-50">
+      {selectedRecipeId && (
+        <RecipeModal
+          recipeId={selectedRecipeId}
+          onClose={() => setSelectedRecipeId(null)}
+        />
+      )}
+
       <Navbar />
 
       {/* COMBINED HEADER + FILTER BANNER */}
@@ -289,7 +298,11 @@ function MyRecipes() {
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {recipes.map((recipe) => (
-              <RecipeCard key={recipe._id} recipe={recipe} />
+              <RecipeCard
+                key={recipe._id}
+                recipe={recipe}
+                onClick={() => setSelectedRecipeId(recipe._id)}
+              />
             ))}
           </div>
         )}

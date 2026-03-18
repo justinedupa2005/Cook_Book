@@ -189,7 +189,7 @@ app.get("/api/recipes", async (req, res) => {
   }
 });
 
-//REQUESTING USER OWN RECIPES
+//REQUESTING USER OWNED RECIPES
 app.get("/api/my-recipes", verifyToken, async (req, res) => {
   try {
     const { region, category, difficulty, search, page = 1 } = req.query;

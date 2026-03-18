@@ -1,16 +1,18 @@
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import RecipeCard from "../components/RecipeCard";
+import RecipeModal from "../components/RecipeModal";
 import homePageImg from "../assets/home-page-image.jpg";
 import { useState, useEffect } from "react";
-import axios from "axios";
+import api from "../api/axiosInstance";
 
 function Home() {
   const [recipes, setRecipes] = useState([]);
+  const [selectedRecipeId, setSelectedRecipeId] = useState(null);
 
   useEffect(() => {
-    axios
-      .get("http://localhost:8080/api/recipes")
+    api
+      .get("/api/recipes")
       .then((res) => {
         setRecipes(res.data.recipes);
       })
@@ -19,6 +21,13 @@ function Home() {
 
   return (
     <div className="flex flex-col min-h-screen">
+      {selectedRecipeId && (
+        <RecipeModal
+          recipeId={selectedRecipeId}
+          onClose={() => setSelectedRecipeId(null)}
+        />
+      )}
+
       <Navbar />
 
       {/* HERO IMAGE SECTION */}
@@ -84,7 +93,11 @@ function Home() {
           {/* Recipe Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
             {recipes.map((recipe) => (
-              <RecipeCard key={recipe._id} recipe={recipe} />
+              <RecipeCard
+                key={recipe._id}
+                recipe={recipe}
+                onClick={() => setSelectedRecipeId(recipe._id)}
+              />
             ))}
           </div>
         </section>

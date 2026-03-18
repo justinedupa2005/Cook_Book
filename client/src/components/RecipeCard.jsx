@@ -1,4 +1,5 @@
-function RecipeCard({ recipe }) {
+function RecipeCard({ recipe, onClick }) {
+  // ← add onClick prop
   const difficultyColors = {
     Easy: "bg-green-100 text-green-700",
     Medium: "bg-orange-100 text-orange-700",
@@ -6,23 +7,22 @@ function RecipeCard({ recipe }) {
   };
 
   return (
-    <div className="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-xl transition">
+    <div
+      onClick={onClick} // ← add this
+      className="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-xl transition cursor-pointer hover:-translate-y-1 duration-200" // ← add cursor-pointer
+    >
       <img
         src={recipe.image}
         alt={recipe.dishName}
         className="w-full h-48 object-cover"
       />
-
       <div className="p-4 text-left">
         <h3 className="text-lg font-bold text-gray-800">{recipe.dishName}</h3>
-
         <p className="text-gray-500 text-sm mt-1">{recipe.description}</p>
-
         <div className="flex justify-between mt-3 text-sm text-gray-600">
           <span>Prep: {recipe.prepTime} min</span>
           <span>Cook: {recipe.cookTime} min</span>
         </div>
-
         <div className="mt-3">
           <span
             className={`text-xs px-2 py-1 rounded ${difficultyColors[recipe.difficulty]}`}

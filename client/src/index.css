@@ -12,3 +12,11 @@
     @apply text-gray-900 antialiased;
   }
 }
+
+.modal-scroll::-webkit-scrollbar {
+  display: none;
+}
+.modal-scroll {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
